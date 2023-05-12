@@ -26,12 +26,9 @@ def _get_ngrams(n, text):
   Returns:
     A set of n-grams
   """
-  ngram_set = set()
   text_length = len(text)
   max_index_ngram_start = text_length - n
-  for i in range(max_index_ngram_start + 1):
-    ngram_set.add(tuple(text[i:i + n]))
-  return ngram_set
+  return {tuple(text[i:i + n]) for i in range(max_index_ngram_start + 1)}
 
 
 def _split_into_words(sentences):
@@ -82,15 +79,14 @@ def _lcs(x, y):
     Table of dictionary of coord and len lcs
   """
   n, m = len(x), len(y)
-  table = dict()
-  for i in range(n + 1):
-    for j in range(m + 1):
-      if i == 0 or j == 0:
-        table[i, j] = 0
-      elif x[i - 1] == y[j - 1]:
-        table[i, j] = table[i - 1, j - 1] + 1
-      else:
-        table[i, j] = max(table[i - 1, j], table[i, j - 1])
+  table = {}
+  for i, j in itertools.product(range(n + 1), range(m + 1)):
+    if i == 0 or j == 0:
+      table[i, j] = 0
+    elif x[i - 1] == y[j - 1]:
+      table[i, j] = table[i - 1, j - 1] + 1
+    else:
+      table[i, j] = max(table[i - 1, j], table[i, j - 1])
   return table
 
 
@@ -159,11 +155,7 @@ def rouge_n(evaluated_sentences, reference_sentences, n=2):
   else:
     precision = overlapping_count / evaluated_count
 
-  if reference_count == 0:
-    recall = 0.0
-  else:
-    recall = overlapping_count / reference_count
-
+  recall = 0.0 if reference_count == 0 else overlapping_count / reference_count
   f1_score = 2.0 * ((precision * recall) / (precision + recall + 1e-8))
 
   # return overlapping_count / reference_count
@@ -263,8 +255,7 @@ def _union_lcs(evaluated_sentences, reference_sentence):
     lcs_union = lcs_union.union(lcs)
 
   union_lcs_count = len(lcs_union)
-  union_lcs_value = union_lcs_count / combined_lcs_length
-  return union_lcs_value
+  return union_lcs_count / combined_lcs_length
 
 
 def rouge_l_summary_level(evaluated_sentences, reference_sentences):
@@ -304,10 +295,8 @@ def rouge_l_summary_level(evaluated_sentences, reference_sentences):
   # total number of words in evaluated sentences
   n = len(_split_into_words(evaluated_sentences))
 
-  union_lcs_sum_across_all_references = 0
-  for ref_s in reference_sentences:
-    union_lcs_sum_across_all_references += _union_lcs(evaluated_sentences,
-                                                      ref_s)
+  union_lcs_sum_across_all_references = sum(
+      _union_lcs(evaluated_sentences, ref_s) for ref_s in reference_sentences)
   return _f_p_r_lcs(union_lcs_sum_across_all_references, m, n)
 
 

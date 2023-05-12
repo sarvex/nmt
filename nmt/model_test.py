@@ -190,20 +190,22 @@ class ModelTest(tf.test.TestCase):
     cls.actual_beam_sentences = {}
     cls.expected_beam_sentences = {
         'BeamSearchAttentionModel: batch 0 of beam 0': '',
-        'BeamSearchAttentionModel: batch 0 of beam 1': '%s a %s a' % (SOS, SOS),
+        'BeamSearchAttentionModel: batch 0 of beam 1': f'{SOS} a {SOS} a',
         'BeamSearchAttentionModel: batch 1 of beam 0': '',
         'BeamSearchAttentionModel: batch 1 of beam 1': 'b',
         'BeamSearchBasicModel: batch 0 of beam 0': 'b b b b',
-        'BeamSearchBasicModel: batch 0 of beam 1': 'b b b %s' % SOS,
+        'BeamSearchBasicModel: batch 0 of beam 1': f'b b b {SOS}',
         'BeamSearchBasicModel: batch 0 of beam 2': 'b b b c',
         'BeamSearchBasicModel: batch 1 of beam 0': 'b b b b',
         'BeamSearchBasicModel: batch 1 of beam 1': 'a b b b',
-        'BeamSearchBasicModel: batch 1 of beam 2': 'b b b %s' % SOS,
+        'BeamSearchBasicModel: batch 1 of beam 2': f'b b b {SOS}',
         'BeamSearchGNMTModel: batch 0 of beam 0': '',
         'BeamSearchGNMTModel: batch 1 of beam 0': '',
     }
-    cls.expected_beam_sentences = dict(
-        (k, v.encode()) for k, v in cls.expected_beam_sentences.items())
+    cls.expected_beam_sentences = {
+        k: v.encode()
+        for k, v in cls.expected_beam_sentences.items()
+    }
 
   @classmethod
   def tearDownClass(cls):
@@ -235,7 +237,7 @@ class ModelTest(tf.test.TestCase):
   def _assertModelVariableNames(self, expected_var_names, model_var_names,
                                 name):
 
-    print('{} variable names are: '.format(name), model_var_names)
+    print(f'{name} variable names are: ', model_var_names)
 
     self.assertEqual(len(expected_var_names), len(model_var_names))
     self.assertEqual(sorted(expected_var_names), sorted(model_var_names))
@@ -245,11 +247,11 @@ class ModelTest(tf.test.TestCase):
     var_res = sess.run(variable)
     var_weight_sum = np.sum(var_res)
 
-    print('{} weight sum is: '.format(name), var_weight_sum)
-    expected_sum = self.expected_vars_values[name + '/sum']
-    expected_shape = self.expected_vars_values[name + '/shape']
-    self.actual_vars_values[name + '/sum'] = var_weight_sum
-    self.actual_vars_values[name + '/shape'] = var_shape
+    print(f'{name} weight sum is: ', var_weight_sum)
+    expected_sum = self.expected_vars_values[f'{name}/sum']
+    expected_shape = self.expected_vars_values[f'{name}/shape']
+    self.actual_vars_values[f'{name}/sum'] = var_weight_sum
+    self.actual_vars_values[f'{name}/shape'] = var_shape
 
     self.assertEqual(expected_shape, var_shape)
     self.assertAllClose(expected_sum, var_weight_sum)
@@ -258,9 +260,9 @@ class ModelTest(tf.test.TestCase):
     for _ in range(num_steps):
       _, output_tuple = m.train(sess)
     loss = output_tuple.train_loss
-    print('{} {}-th step loss is: '.format(name, num_steps), loss)
-    expected_loss = self.expected_train_values[name + '/loss']
-    self.actual_train_values[name + '/loss'] = loss
+    print(f'{name} {num_steps}-th step loss is: ', loss)
+    expected_loss = self.expected_train_values[f'{name}/loss']
+    self.actual_train_values[f'{name}/loss'] = loss
 
     self.assertAllClose(expected_loss, loss)
 
@@ -268,12 +270,12 @@ class ModelTest(tf.test.TestCase):
     output_tuple = m.eval(sess)
     loss = output_tuple.eval_loss
     predict_count = output_tuple.predict_count
-    print('{} eval loss is: '.format(name), loss)
-    print('{} predict count is: '.format(name), predict_count)
-    expected_loss = self.expected_eval_values[name + '/loss']
-    expected_predict_count = self.expected_eval_values[name + '/predict_count']
-    self.actual_eval_values[name + '/loss'] = loss
-    self.actual_eval_values[name + '/predict_count'] = predict_count
+    print(f'{name} eval loss is: ', loss)
+    print(f'{name} predict count is: ', predict_count)
+    expected_loss = self.expected_eval_values[f'{name}/loss']
+    expected_predict_count = self.expected_eval_values[f'{name}/predict_count']
+    self.actual_eval_values[f'{name}/loss'] = loss
+    self.actual_eval_values[f'{name}/predict_count'] = predict_count
 
     self.assertAllClose(expected_loss, loss)
     self.assertAllClose(expected_predict_count, predict_count)
@@ -282,9 +284,9 @@ class ModelTest(tf.test.TestCase):
     output_tuple = m.infer(sess)
     logits_sum = np.sum(output_tuple.infer_logits)
 
-    print('{} infer logits sum is: '.format(name), logits_sum)
-    expected_logits_sum = self.expected_infer_values[name + '/logits_sum']
-    self.actual_infer_values[name + '/logits_sum'] = logits_sum
+    print(f'{name} infer logits sum is: ', logits_sum)
+    expected_logits_sum = self.expected_infer_values[f'{name}/logits_sum']
+    self.actual_infer_values[f'{name}/logits_sum'] = logits_sum
 
     self.assertAllClose(expected_logits_sum, logits_sum)
 
@@ -896,7 +898,7 @@ class ModelTest(tf.test.TestCase):
     ]
     # pylint: enable=line-too-long
 
-    test_prefix = 'GNMTModel_%s' % architecture
+    test_prefix = f'GNMTModel_{architecture}'
     with tf.Graph().as_default():
       with tf.Session(worker.target, config=self._get_session_config()) as sess:
         train_m = self._createTestTrainModel(gnmt_model.GNMTModel, hparams,
@@ -914,11 +916,11 @@ class ModelTest(tf.test.TestCase):
         self._assertTrainStepsLoss(train_m, sess, test_prefix)
 
         self._assertModelVariable(last_enc_weight, sess,
-                                  '%s/last_enc_weight' % test_prefix)
+                                  f'{test_prefix}/last_enc_weight')
         self._assertModelVariable(last_dec_weight, sess,
-                                  '%s/last_dec_weight' % test_prefix)
+                                  f'{test_prefix}/last_dec_weight')
         self._assertModelVariable(mem_layer_weight, sess,
-                                  '%s/mem_layer_weight' % test_prefix)
+                                  f'{test_prefix}/mem_layer_weight')
 
     with tf.Graph().as_default():
       with tf.Session(worker.target, config=self._get_session_config()) as sess:

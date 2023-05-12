@@ -42,7 +42,7 @@ def _decode_inference_indices(model, sess, output_infer,
                   (output_infer, len(inference_indices)))
   start_time = time.time()
   with codecs.getwriter("utf-8")(
-      tf.gfile.GFile(output_infer, mode="wb")) as trans_f:
+        tf.gfile.GFile(output_infer, mode="wb")) as trans_f:
     trans_f.write("")  # Write empty string to ensure file is created.
     for decode_id in inference_indices:
       nmt_outputs, infer_summary = model.decode(sess)
@@ -57,7 +57,7 @@ def _decode_inference_indices(model, sess, output_infer,
 
       if infer_summary is not None:  # Attention models
         image_file = output_infer_summary_prefix + str(decode_id) + ".png"
-        utils.print_out("  save attention image to %s*" % image_file)
+        utils.print_out(f"  save attention image to {image_file}*")
         image_summ = tf.Summary()
         image_summ.ParseFromString(infer_summary)
         with tf.gfile.GFile(image_file, mode="w") as img_f:
@@ -90,8 +90,8 @@ def get_model_creator(hparams):
   elif not hparams.attention:
     model_creator = nmt_model.Model
   else:
-    raise ValueError("Unknown attention architecture %s" %
-                     hparams.attention_architecture)
+    raise ValueError(
+        f"Unknown attention architecture {hparams.attention_architecture}")
   return model_creator
 
 
@@ -240,7 +240,7 @@ def multi_worker_inference(sess,
 
     # Now write all translations
     with codecs.getwriter("utf-8")(
-        tf.gfile.GFile(final_output_infer, mode="wb")) as final_f:
+            tf.gfile.GFile(final_output_infer, mode="wb")) as final_f:
       for worker_id in range(num_workers):
         worker_infer_done = "%s_done_%d" % (inference_output_file, worker_id)
         while not tf.gfile.Exists(worker_infer_done):
@@ -248,9 +248,9 @@ def multi_worker_inference(sess,
           time.sleep(10)
 
         with codecs.getreader("utf-8")(
-            tf.gfile.GFile(worker_infer_done, mode="rb")) as f:
+                    tf.gfile.GFile(worker_infer_done, mode="rb")) as f:
           for translation in f:
-            final_f.write("%s" % translation)
+            final_f.write(f"{translation}")
 
       for worker_id in range(num_workers):
         worker_infer_done = "%s_done_%d" % (inference_output_file, worker_id)

@@ -38,8 +38,8 @@ class InferenceTest(tf.test.TestCase):
     # Prepare
     hparams.vocab_prefix = (
         "nmt/testdata/test_infer_vocab")
-    hparams.src_vocab_file = hparams.vocab_prefix + "." + hparams.src
-    hparams.tgt_vocab_file = hparams.vocab_prefix + "." + hparams.tgt
+    hparams.src_vocab_file = f"{hparams.vocab_prefix}.{hparams.src}"
+    hparams.tgt_vocab_file = f"{hparams.vocab_prefix}.{hparams.tgt}"
     out_dir = os.path.join(tf.test.get_temp_dir(), name)
     os.makedirs(out_dir)
     hparams.out_dir = out_dir

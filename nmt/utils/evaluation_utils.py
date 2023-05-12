@@ -34,7 +34,6 @@ def evaluate(ref_file, trans_file, metric, subword_option=None):
   if metric.lower() == "bleu":
     evaluation_score = _bleu(ref_file, trans_file,
                              subword_option=subword_option)
-  # ROUGE scores for summarization tasks
   elif metric.lower() == "rouge":
     evaluation_score = _rouge(ref_file, trans_file,
                               subword_option=subword_option)
@@ -43,7 +42,7 @@ def evaluate(ref_file, trans_file, metric, subword_option=None):
   elif metric.lower() == "word_accuracy":
     evaluation_score = _word_accuracy(ref_file, trans_file)
   else:
-    raise ValueError("Unknown metric %s" % metric)
+    raise ValueError(f"Unknown metric {metric}")
 
   return evaluation_score
 
@@ -101,15 +100,11 @@ def _rouge(ref_file, summarization_file, subword_option=None):
 
   references = []
   with codecs.getreader("utf-8")(tf.gfile.GFile(ref_file, "rb")) as fh:
-    for line in fh:
-      references.append(_clean(line, subword_option))
-
+    references.extend(_clean(line, subword_option) for line in fh)
   hypotheses = []
   with codecs.getreader("utf-8")(
-      tf.gfile.GFile(summarization_file, "rb")) as fh:
-    for line in fh:
-      hypotheses.append(_clean(line, subword_option=None))
-
+        tf.gfile.GFile(summarization_file, "rb")) as fh:
+    hypotheses.extend(_clean(line, subword_option=None) for line in fh)
   rouge_score_map = rouge.rouge(hypotheses, references)
   return 100 * rouge_score_map["rouge_l/f_score"]
 
@@ -156,22 +151,21 @@ def _moses_bleu(multi_bleu_script, tgt_test, trans_file, subword_option=None):
   # TODO(thangluong): perform rewrite using python
   # BPE
   if subword_option == "bpe":
-    debpe_tgt_test = tgt_test + ".debpe"
+    debpe_tgt_test = f"{tgt_test}.debpe"
     if not os.path.exists(debpe_tgt_test):
       # TODO(thangluong): not use shell=True, can be a security hazard
-      subprocess.call("cp %s %s" % (tgt_test, debpe_tgt_test), shell=True)
-      subprocess.call("sed s/@@ //g %s" % (debpe_tgt_test),
-                      shell=True)
+      subprocess.call(f"cp {tgt_test} {debpe_tgt_test}", shell=True)
+      subprocess.call(f"sed s/@@ //g {debpe_tgt_test}", shell=True)
     tgt_test = debpe_tgt_test
   elif subword_option == "spm":
-    despm_tgt_test = tgt_test + ".despm"
+    despm_tgt_test = f"{tgt_test}.despm"
     if not os.path.exists(despm_tgt_test):
-      subprocess.call("cp %s %s" % (tgt_test, despm_tgt_test))
-      subprocess.call("sed s/ //g %s" % (despm_tgt_test))
+      subprocess.call(f"cp {tgt_test} {despm_tgt_test}")
+      subprocess.call(f"sed s/ //g {despm_tgt_test}")
       subprocess.call(u"sed s/^\u2581/g %s" % (despm_tgt_test))
       subprocess.call(u"sed s/\u2581/ /g %s" % (despm_tgt_test))
     tgt_test = despm_tgt_test
-  cmd = "%s %s < %s" % (multi_bleu_script, tgt_test, trans_file)
+  cmd = f"{multi_bleu_script} {tgt_test} < {trans_file}"
 
   # subprocess
   # TODO(thangluong): not use shell=True, can be a security hazard
@@ -179,6 +173,4 @@ def _moses_bleu(multi_bleu_script, tgt_test, trans_file, subword_option=None):
 
   # extract BLEU score
   m = re.search("BLEU = (.+?),", bleu_output)
-  bleu_score = float(m.group(1))
-
-  return bleu_score
+  return float(m[1])

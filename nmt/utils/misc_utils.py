@@ -36,7 +36,7 @@ def check_tensorflow_version():
   # LINT.ThenChange(<pwd>/nmt/copy.bara.sky)
   if (version.LooseVersion(tf.__version__) <
       version.LooseVersion(min_tf_version)):
-    raise EnvironmentError("Tensorflow version must >= %s" % min_tf_version)
+    raise EnvironmentError(f"Tensorflow version must >= {min_tf_version}")
 
 
 def safe_exp(value):
@@ -78,35 +78,35 @@ def print_out(s, f=None, new_line=True):
 
 def print_hparams(hparams, skip_patterns=None, header=None):
   """Print hparams, can skip keys based on pattern."""
-  if header: print_out("%s" % header)
+  if header:
+    print_out(f"{header}")
   values = hparams.values()
   for key in sorted(values.keys()):
-    if not skip_patterns or all(
-        [skip_pattern not in key for skip_pattern in skip_patterns]):
-      print_out("  %s=%s" % (key, str(values[key])))
+    if not skip_patterns or all(skip_pattern not in key
+                                for skip_pattern in skip_patterns):
+      print_out(f"  {key}={str(values[key])}")
 
 
 def load_hparams(model_dir):
   """Load hparams from an existing model directory."""
   hparams_file = os.path.join(model_dir, "hparams")
-  if tf.gfile.Exists(hparams_file):
-    print_out("# Loading hparams from %s" % hparams_file)
-    with codecs.getreader("utf-8")(tf.gfile.GFile(hparams_file, "rb")) as f:
-      try:
-        hparams_values = json.load(f)
-        hparams = tf.contrib.training.HParams(**hparams_values)
-      except ValueError:
-        print_out("  can't load hparams file")
-        return None
-    return hparams
-  else:
+  if not tf.gfile.Exists(hparams_file):
     return None
+  print_out(f"# Loading hparams from {hparams_file}")
+  with codecs.getreader("utf-8")(tf.gfile.GFile(hparams_file, "rb")) as f:
+    try:
+      hparams_values = json.load(f)
+      hparams = tf.contrib.training.HParams(**hparams_values)
+    except ValueError:
+      print_out("  can't load hparams file")
+      return None
+  return hparams
 
 
 def maybe_parse_standard_hparams(hparams, hparams_path):
   """Override hparams values with existing standard hparams config."""
   if hparams_path and tf.gfile.Exists(hparams_path):
-    print_out("# Loading standard hparams from %s" % hparams_path)
+    print_out(f"# Loading standard hparams from {hparams_path}")
     with codecs.getreader("utf-8")(tf.gfile.GFile(hparams_path, "rb")) as f:
       hparams.parse_json(f.read())
   return hparams
@@ -115,7 +115,7 @@ def maybe_parse_standard_hparams(hparams, hparams_path):
 def save_hparams(out_dir, hparams):
   """Save hparams."""
   hparams_file = os.path.join(out_dir, "hparams")
-  print_out("  saving hparams to %s" % hparams_file)
+  print_out(f"  saving hparams to {hparams_file}")
   with codecs.getwriter("utf-8")(tf.gfile.GFile(hparams_file, "wb")) as f:
     f.write(hparams.to_json(indent=4, sort_keys=True))
 
@@ -124,7 +124,7 @@ def debug_tensor(s, msg=None, summarize=10):
   """Print the shape and value of a tensor at test time. Return a new tensor."""
   if not msg:
     msg = s.name
-  return tf.Print(s, [tf.shape(s), s], msg + " ", summarize=summarize)
+  return tf.Print(s, [tf.shape(s), s], f"{msg} ", summarize=summarize)
 
 
 def add_summary(summary_writer, global_step, tag, value):

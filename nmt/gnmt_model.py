@@ -56,11 +56,11 @@ class GNMTModel(attention_model.AttentionModel):
 
   def _build_encoder(self, hparams):
     """Build a GNMT encoder."""
-    if hparams.encoder_type == "uni" or hparams.encoder_type == "bi":
+    if hparams.encoder_type in ["uni", "bi"]:
       return super(GNMTModel, self)._build_encoder(hparams)
 
     if hparams.encoder_type != "gnmt":
-      raise ValueError("Unknown encoder_type %s" % hparams.encoder_type)
+      raise ValueError(f"Unknown encoder_type {hparams.encoder_type}")
 
     # Build GNMT encoder.
     num_bi_layers = 1
@@ -234,8 +234,7 @@ class GNMTModel(attention_model.AttentionModel):
       cell = GNMTAttentionMultiCell(
           attention_cell, cell_list, use_new_attention=True)
     else:
-      raise ValueError(
-          "Unknown attention_architecture %s" % attention_architecture)
+      raise ValueError(f"Unknown attention_architecture {attention_architecture}")
 
     if hparams.pass_hidden_state:
       decoder_initial_state = tuple(

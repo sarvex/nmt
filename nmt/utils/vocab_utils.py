@@ -111,31 +111,30 @@ def load_vocab(vocab_file):
 def check_vocab(vocab_file, out_dir, check_special_token=True, sos=None,
                 eos=None, unk=None):
   """Check if vocab_file doesn't exist, create from corpus_file."""
-  if tf.gfile.Exists(vocab_file):
-    utils.print_out("# Vocab file %s exists" % vocab_file)
-    vocab, vocab_size = load_vocab(vocab_file)
-    if check_special_token:
-      # Verify if the vocab starts with unk, sos, eos
-      # If not, prepend those tokens & generate a new vocab file
-      if not unk: unk = UNK
-      if not sos: sos = SOS
-      if not eos: eos = EOS
-      assert len(vocab) >= 3
-      if vocab[0] != unk or vocab[1] != sos or vocab[2] != eos:
-        utils.print_out("The first 3 vocab words [%s, %s, %s]"
-                        " are not [%s, %s, %s]" %
-                        (vocab[0], vocab[1], vocab[2], unk, sos, eos))
-        vocab = [unk, sos, eos] + vocab
-        vocab_size += 3
-        new_vocab_file = os.path.join(out_dir, os.path.basename(vocab_file))
-        with codecs.getwriter("utf-8")(
-            tf.gfile.GFile(new_vocab_file, "wb")) as f:
-          for word in vocab:
-            f.write("%s\n" % word)
-        vocab_file = new_vocab_file
-  else:
-    raise ValueError("vocab_file '%s' does not exist." % vocab_file)
+  if not tf.gfile.Exists(vocab_file):
+    raise ValueError(f"vocab_file '{vocab_file}' does not exist.")
 
+  utils.print_out(f"# Vocab file {vocab_file} exists")
+  vocab, vocab_size = load_vocab(vocab_file)
+  if check_special_token:
+    # Verify if the vocab starts with unk, sos, eos
+    # If not, prepend those tokens & generate a new vocab file
+    if not unk: unk = UNK
+    if not sos: sos = SOS
+    if not eos: eos = EOS
+    assert len(vocab) >= 3
+    if vocab[0] != unk or vocab[1] != sos or vocab[2] != eos:
+      utils.print_out(
+          f"The first 3 vocab words [{vocab[0]}, {vocab[1]}, {vocab[2]}] are not [{unk}, {sos}, {eos}]"
+      )
+      vocab = [unk, sos, eos] + vocab
+      vocab_size += 3
+      new_vocab_file = os.path.join(out_dir, os.path.basename(vocab_file))
+      with codecs.getwriter("utf-8")(
+          tf.gfile.GFile(new_vocab_file, "wb")) as f:
+        for word in vocab:
+          f.write("%s\n" % word)
+      vocab_file = new_vocab_file
   vocab_size = len(vocab)
   return vocab_size, vocab_file
 
@@ -169,7 +168,7 @@ def load_embed_txt(embed_file):
   Returns:
     a dictionary that maps word to vector, and the size of embedding dimensions.
   """
-  emb_dict = dict()
+  emb_dict = {}
   emb_size = None
 
   is_first_line = True
@@ -186,8 +185,7 @@ def load_embed_txt(embed_file):
       emb_dict[word] = vec
       if emb_size:
         if emb_size != len(vec):
-          utils.print_out(
-              "Ignoring %s since embeding size is inconsistent." % word)
+          utils.print_out(f"Ignoring {word} since embeding size is inconsistent.")
           del emb_dict[word]
       else:
         emb_size = len(vec)

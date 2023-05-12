@@ -83,7 +83,7 @@ class AttentionModel(model.Model):
           hparams, encoder_outputs, encoder_state, source_sequence_length)
     elif hparams.attention_architecture != "standard":
       raise ValueError(
-          "Unknown attention architecture %s" % hparams.attention_architecture)
+          f"Unknown attention architecture {hparams.attention_architecture}")
 
     num_units = hparams.num_units
     num_layers = self.num_decoder_layers
@@ -177,7 +177,7 @@ def create_attention_mechanism(attention_option, num_units, memory,
         memory_sequence_length=source_sequence_length,
         normalize=True)
   else:
-    raise ValueError("Unknown attention option %s" % attention_option)
+    raise ValueError(f"Unknown attention option {attention_option}")
 
   return attention_mechanism
 
@@ -190,5 +190,4 @@ def _create_attention_images_summary(final_context_state):
       tf.transpose(attention_images, [1, 2, 0]), -1)
   # Scale to range [0, 255]
   attention_images *= 255
-  attention_summary = tf.summary.image("attention_images", attention_images)
-  return attention_summary
+  return tf.summary.image("attention_images", attention_images)

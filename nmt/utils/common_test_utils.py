@@ -38,12 +38,7 @@ def create_test_hparams(unit_type="lstm",
                         beam_width=0,
                         init_op="uniform"):
   """Create training and inference test hparams."""
-  num_residual_layers = 0
-  if use_residual:
-    # TODO(rzhao): Put num_residual_layers computation logic into
-    # `model_utils.py`, so we can also test it here.
-    num_residual_layers = 2
-
+  num_residual_layers = 2 if use_residual else 0
   standard_hparams = standard_hparams_utils.create_standard_hparams()
 
   # Networks
@@ -108,23 +103,7 @@ def create_test_iterator(hparams, mode):
   src_dataset = tf.data.Dataset.from_tensor_slices(
       tf.constant(["a a b b c", "a b b"]))
 
-  if mode != tf.contrib.learn.ModeKeys.INFER:
-    tgt_dataset = tf.data.Dataset.from_tensor_slices(
-        tf.constant(["a b c b c", "a b c b"]))
-    return (
-        iterator_utils.get_iterator(
-            src_dataset=src_dataset,
-            tgt_dataset=tgt_dataset,
-            src_vocab_table=src_vocab_table,
-            tgt_vocab_table=tgt_vocab_table,
-            batch_size=hparams.batch_size,
-            sos=hparams.sos,
-            eos=hparams.eos,
-            random_seed=hparams.random_seed,
-            num_buckets=hparams.num_buckets),
-        src_vocab_table,
-        tgt_vocab_table)
-  else:
+  if mode == tf.contrib.learn.ModeKeys.INFER:
     return (
         iterator_utils.get_infer_iterator(
             src_dataset=src_dataset,
@@ -134,3 +113,18 @@ def create_test_iterator(hparams, mode):
         src_vocab_table,
         tgt_vocab_table,
         reverse_tgt_vocab_table)
+  tgt_dataset = tf.data.Dataset.from_tensor_slices(
+      tf.constant(["a b c b c", "a b c b"]))
+  return (
+      iterator_utils.get_iterator(
+          src_dataset=src_dataset,
+          tgt_dataset=tgt_dataset,
+          src_vocab_table=src_vocab_table,
+          tgt_vocab_table=tgt_vocab_table,
+          batch_size=hparams.batch_size,
+          sos=hparams.sos,
+          eos=hparams.eos,
+          random_seed=hparams.random_seed,
+          num_buckets=hparams.num_buckets),
+      src_vocab_table,
+      tgt_vocab_table)

@@ -87,12 +87,11 @@ def compute_bleu(reference_corpus, translation_corpus, max_order=4,
     if smooth:
       precisions[i] = ((matches_by_order[i] + 1.) /
                        (possible_matches_by_order[i] + 1.))
+    elif possible_matches_by_order[i] > 0:
+      precisions[i] = (float(matches_by_order[i]) /
+                       possible_matches_by_order[i])
     else:
-      if possible_matches_by_order[i] > 0:
-        precisions[i] = (float(matches_by_order[i]) /
-                         possible_matches_by_order[i])
-      else:
-        precisions[i] = 0.0
+      precisions[i] = 0.0
 
   if min(precisions) > 0:
     p_log_sum = sum((1. / max_order) * math.log(p) for p in precisions)
@@ -102,11 +101,7 @@ def compute_bleu(reference_corpus, translation_corpus, max_order=4,
 
   ratio = float(translation_length) / reference_length
 
-  if ratio > 1.0:
-    bp = 1.
-  else:
-    bp = math.exp(1 - 1. / ratio)
-
+  bp = 1. if ratio > 1.0 else math.exp(1 - 1. / ratio)
   bleu = geo_mean * bp
 
   return (bleu, precisions, bp, ratio, translation_length, reference_length)

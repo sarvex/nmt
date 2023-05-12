@@ -42,7 +42,7 @@ def decode_and_evaluate(name,
   """Decode a test set and compute a score according to the evaluation task."""
   # Decode
   if decode:
-    utils.print_out("  decoding to output %s" % trans_file)
+    utils.print_out(f"  decoding to output {trans_file}")
 
     start_time = time.time()
     num_sentences = 0
@@ -103,11 +103,9 @@ def get_translation(nmt_outputs, sent_id, tgt_eos, subword_option):
   if tgt_eos and tgt_eos in output:
     output = output[:output.index(tgt_eos)]
 
-  if subword_option == "bpe":  # BPE
-    translation = utils.format_bpe_text(output)
-  elif subword_option == "spm":  # SPM
-    translation = utils.format_spm_text(output)
+  if subword_option == "bpe":# BPE
+    return utils.format_bpe_text(output)
+  elif subword_option == "spm":# SPM
+    return utils.format_spm_text(output)
   else:
-    translation = utils.format_text(output)
-
-  return translation
+    return utils.format_text(output)

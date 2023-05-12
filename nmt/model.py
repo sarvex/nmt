@@ -204,7 +204,7 @@ class BaseModel(object):
       elif hparams.optimizer == "adam":
         opt = tf.train.AdamOptimizer(self.learning_rate)
       else:
-        raise ValueError("Unknown optimizer type %s" % hparams.optimizer)
+        raise ValueError(f"Unknown optimizer type {hparams.optimizer}")
 
       # Gradients
       gradients = tf.gradients(
@@ -229,8 +229,7 @@ class BaseModel(object):
     utils.print_out("# Trainable variables")
     utils.print_out("Format: <name>, <shape>, <(soft) device placement>")
     for param in params:
-      utils.print_out("  %s, %s, %s" % (param.name, str(param.get_shape()),
-                                        param.op.device))
+      utils.print_out(f"  {param.name}, {str(param.get_shape())}, {param.op.device}")
 
   def _get_learning_rate_warmup(self, hparams):
     """Get learning rate warmup."""
@@ -239,18 +238,13 @@ class BaseModel(object):
     utils.print_out("  learning_rate=%g, warmup_steps=%d, warmup_scheme=%s" %
                     (hparams.learning_rate, warmup_steps, warmup_scheme))
 
-    # Apply inverse decay if global steps less than warmup steps.
-    # Inspired by https://arxiv.org/pdf/1706.03762.pdf (Section 5.3)
-    # When step < warmup_steps,
-    #   learing_rate *= warmup_factor ** (warmup_steps - step)
-    if warmup_scheme == "t2t":
-      # 0.01^(1/warmup_steps): we start with a lr, 100 times smaller
-      warmup_factor = tf.exp(tf.log(0.01) / warmup_steps)
-      inv_decay = warmup_factor**(
-          tf.to_float(warmup_steps - self.global_step))
-    else:
-      raise ValueError("Unknown warmup scheme %s" % warmup_scheme)
+    if warmup_scheme != "t2t":
+      raise ValueError(f"Unknown warmup scheme {warmup_scheme}")
 
+    # 0.01^(1/warmup_steps): we start with a lr, 100 times smaller
+    warmup_factor = tf.exp(tf.log(0.01) / warmup_steps)
+    inv_decay = warmup_factor**(
+        tf.to_float(warmup_steps - self.global_step))
     return tf.cond(
         self.global_step < hparams.warmup_steps,
         lambda: inv_decay * self.learning_rate,
@@ -261,23 +255,23 @@ class BaseModel(object):
     """Return decay info based on decay_scheme."""
     if hparams.decay_scheme in ["luong5", "luong10", "luong234"]:
       decay_factor = 0.5
-      if hparams.decay_scheme == "luong5":
-        start_decay_step = int(hparams.num_train_steps / 2)
-        decay_times = 5
-      elif hparams.decay_scheme == "luong10":
+      if hparams.decay_scheme == "luong10":
         start_decay_step = int(hparams.num_train_steps / 2)
         decay_times = 10
       elif hparams.decay_scheme == "luong234":
         start_decay_step = int(hparams.num_train_steps * 2 / 3)
         decay_times = 4
+      elif hparams.decay_scheme == "luong5":
+        start_decay_step = int(hparams.num_train_steps / 2)
+        decay_times = 5
       remain_steps = hparams.num_train_steps - start_decay_step
       decay_steps = int(remain_steps / decay_times)
     elif not hparams.decay_scheme:  # no decay
       start_decay_step = hparams.num_train_steps
       decay_steps = 0
       decay_factor = 1.0
-    elif hparams.decay_scheme:
-      raise ValueError("Unknown decay scheme %s" % hparams.decay_scheme)
+    else:
+      raise ValueError(f"Unknown decay scheme {hparams.decay_scheme}")
     return start_decay_step, decay_steps, decay_factor
 
   def _get_learning_rate_decay(self, hparams):
@@ -318,11 +312,10 @@ class BaseModel(object):
 
   def _get_train_summary(self):
     """Get train summary."""
-    train_summary = tf.summary.merge(
-        [tf.summary.scalar("lr", self.learning_rate),
-         tf.summary.scalar("train_loss", self.train_loss)] +
-        self.grad_norm_summary)
-    return train_summary
+    return tf.summary.merge([
+        tf.summary.scalar("lr", self.learning_rate),
+        tf.summary.scalar("train_loss", self.train_loss),
+    ] + self.grad_norm_summary)
 
   def train(self, sess):
     """Execute train graph."""
@@ -366,7 +359,7 @@ class BaseModel(object):
         attention_option is not (luong | scaled_luong |
         bahdanau | normed_bahdanau).
     """
-    utils.print_out("# Creating %s graph ..." % self.mode)
+    utils.print_out(f"# Creating {self.mode} graph ...")
 
     # Projection
     if not self.extract_encoder_layers:
@@ -663,9 +656,8 @@ class BaseModel(object):
     if self.time_major:
       target_weights = tf.transpose(target_weights)
 
-    loss = tf.reduce_sum(
-        crossent * target_weights) / tf.to_float(self.batch_size)
-    return loss
+    return tf.reduce_sum(crossent * target_weights) / tf.to_float(
+        self.batch_size)
 
   def _get_infer_summary(self, hparams):
     del hparams
@@ -786,11 +778,11 @@ class Model(BaseModel):
           # alternatively concat forward and backward states
           encoder_state = []
           for layer_id in range(num_bi_layers):
-            encoder_state.append(bi_encoder_state[0][layer_id])  # forward
-            encoder_state.append(bi_encoder_state[1][layer_id])  # backward
+            encoder_state.extend(
+                (bi_encoder_state[0][layer_id], bi_encoder_state[1][layer_id]))
           encoder_state = tuple(encoder_state)
       else:
-        raise ValueError("Unknown encoder_type %s" % hparams.encoder_type)
+        raise ValueError(f"Unknown encoder_type {hparams.encoder_type}")
 
     # Use the top layer for now
     self.encoder_state_list = [encoder_outputs]

@@ -53,15 +53,12 @@ def get_initializer(init_op, seed=None, init_weight=None):
     return tf.keras.initializers.glorot_uniform(
         seed=seed)
   else:
-    raise ValueError("Unknown init_op %s" % init_op)
+    raise ValueError(f"Unknown init_op {init_op}")
 
 
 def get_device_str(device_id, num_gpus):
   """Return a device string for multi-GPU setup."""
-  if num_gpus == 0:
-    return "/cpu:0"
-  device_str_output = "/gpu:%d" % (device_id % num_gpus)
-  return device_str_output
+  return "/cpu:0" if num_gpus == 0 else "/gpu:%d" % (device_id % num_gpus)
 
 
 class ExtraArgs(collections.namedtuple(
@@ -80,14 +77,14 @@ def create_train_model(
     model_creator, hparams, scope=None, num_workers=1, jobid=0,
     extra_args=None):
   """Create train graph, model, and iterator."""
-  src_file = "%s.%s" % (hparams.train_prefix, hparams.src)
-  tgt_file = "%s.%s" % (hparams.train_prefix, hparams.tgt)
+  src_file = f"{hparams.train_prefix}.{hparams.src}"
+  tgt_file = f"{hparams.train_prefix}.{hparams.tgt}"
   src_vocab_file = hparams.src_vocab_file
   tgt_vocab_file = hparams.tgt_vocab_file
 
   graph = tf.Graph()
 
-  with graph.as_default(), tf.container(scope or "train"):
+  with (graph.as_default(), tf.container(scope or "train")):
     src_vocab_table, tgt_vocab_table = vocab_utils.create_vocab_tables(
         src_vocab_file, tgt_vocab_file, hparams.share_vocab)
 
@@ -112,10 +109,7 @@ def create_train_model(
         shard_index=jobid,
         use_char_encode=hparams.use_char_encode)
 
-    # Note: One can set model_device_fn to
-    # `tf.train.replica_device_setter(ps_tasks)` for distributed training.
-    model_device_fn = None
-    if extra_args: model_device_fn = extra_args.model_device_fn
+    model_device_fn = extra_args.model_device_fn if extra_args else None
     with tf.device(model_device_fn):
       model = model_creator(
           hparams,
@@ -236,10 +230,7 @@ def create_infer_model(model_creator, hparams, scope=None, extra_args=None):
 
 def _get_embed_device(vocab_size):
   """Decide on which device to place an embed matrix given its vocab size."""
-  if vocab_size > VOCAB_SIZE_THRESHOLD_CPU:
-    return "/cpu:0"
-  else:
-    return "/gpu:0"
+  return "/cpu:0" if vocab_size > VOCAB_SIZE_THRESHOLD_CPU else "/gpu:0"
 
 
 def _create_pretrained_emb_from_txt(
@@ -255,12 +246,12 @@ def _create_pretrained_emb_from_txt(
   vocab, _ = vocab_utils.load_vocab(vocab_file)
   trainable_tokens = vocab[:num_trainable_tokens]
 
-  utils.print_out("# Using pretrained embedding: %s." % embed_file)
+  utils.print_out(f"# Using pretrained embedding: {embed_file}.")
   utils.print_out("  with trainable tokens: ")
 
   emb_dict, emb_size = vocab_utils.load_embed_txt(embed_file)
   for token in trainable_tokens:
-    utils.print_out("    %s" % token)
+    utils.print_out(f"    {token}")
     if token not in emb_dict:
       emb_dict[token] = [0.0] * emb_size
 
@@ -414,7 +405,7 @@ def _single_cell(unit_type, num_units, forget_bias, dropout, mode,
     utils.print_out("  NASCell", new_line=False)
     single_cell = tf.contrib.rnn.NASCell(num_units)
   else:
-    raise ValueError("Unknown unit type %s!" % unit_type)
+    raise ValueError(f"Unknown unit type {unit_type}!")
 
   # Dropout (= 1 - keep_prob)
   if dropout > 0.0:
@@ -427,13 +418,13 @@ def _single_cell(unit_type, num_units, forget_bias, dropout, mode,
   if residual_connection:
     single_cell = tf.contrib.rnn.ResidualWrapper(
         single_cell, residual_fn=residual_fn)
-    utils.print_out("  %s" % type(single_cell).__name__, new_line=False)
+    utils.print_out(f"  {type(single_cell).__name__}", new_line=False)
 
   # Device Wrapper
   if device_str:
     single_cell = tf.contrib.rnn.DeviceWrapper(single_cell, device_str)
-    utils.print_out("  %s, device=%s" %
-                    (type(single_cell).__name__, device_str), new_line=False)
+    utils.print_out(f"  {type(single_cell).__name__}, device={device_str}",
+                    new_line=False)
 
   return single_cell
 
@@ -521,11 +512,11 @@ def gradient_clip(gradients, max_gradient_norm):
 
 def print_variables_in_ckpt(ckpt_path):
   """Print a list of variables in a checkpoint together with their shapes."""
-  utils.print_out("# Variables in ckpt %s" % ckpt_path)
+  utils.print_out(f"# Variables in ckpt {ckpt_path}")
   reader = tf.train.NewCheckpointReader(ckpt_path)
   variable_map = reader.get_variable_to_shape_map()
   for key in sorted(variable_map.keys()):
-    utils.print_out("  %s: %s" % (key, variable_map[key]))
+    utils.print_out(f"  {key}: {variable_map[key]}")
 
 
 def load_model(model, ckpt_path, session, name):
@@ -536,7 +527,7 @@ def load_model(model, ckpt_path, session, name):
   except tf.errors.NotFoundError as e:
     utils.print_out("Can't load checkpoint")
     print_variables_in_ckpt(ckpt_path)
-    utils.print_out("%s" % str(e))
+    utils.print_out(f"{str(e)}")
 
   session.run(tf.tables_initializer())
   utils.print_out(
@@ -550,7 +541,7 @@ def avg_checkpoints(model_dir, num_last_checkpoints, global_step,
   """Average the last N checkpoints in the model_dir."""
   checkpoint_state = tf.train.get_checkpoint_state(model_dir)
   if not checkpoint_state:
-    utils.print_out("# No checkpoint file found in directory: %s" % model_dir)
+    utils.print_out(f"# No checkpoint file found in directory: {model_dir}")
     return None
 
   # Checkpoints are ordered from oldest to newest.
@@ -567,8 +558,8 @@ def avg_checkpoints(model_dir, num_last_checkpoints, global_step,
   avg_model_dir = os.path.join(model_dir, "avg_checkpoints")
   if not tf.gfile.Exists(avg_model_dir):
     utils.print_out(
-        "# Creating new directory %s for saving averaged checkpoints." %
-        avg_model_dir)
+        f"# Creating new directory {avg_model_dir} for saving averaged checkpoints."
+    )
     tf.gfile.MakeDirs(avg_model_dir)
 
   utils.print_out("# Reading and averaging variables in checkpoints:")
@@ -579,7 +570,7 @@ def avg_checkpoints(model_dir, num_last_checkpoints, global_step,
       var_values[name] = np.zeros(shape)
 
   for checkpoint in checkpoints:
-    utils.print_out("    %s" % checkpoint)
+    utils.print_out(f"    {checkpoint}")
     reader = tf.contrib.framework.load_checkpoint(checkpoint)
     for name in var_values:
       tensor = reader.get_tensor(name)
@@ -620,8 +611,7 @@ def avg_checkpoints(model_dir, num_last_checkpoints, global_step,
 
 def create_or_load_model(model, model_dir, session, name):
   """Create translation model and initialize or load parameters in session."""
-  latest_ckpt = tf.train.latest_checkpoint(model_dir)
-  if latest_ckpt:
+  if latest_ckpt := tf.train.latest_checkpoint(model_dir):
     model = load_model(model, latest_ckpt, session, name)
   else:
     start_time = time.time()

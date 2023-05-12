@@ -474,14 +474,11 @@ def extend_hparams(hparams):
     utils.print_out("For language modeling, we turn off attention and "
                     "pass_hidden_state; turn on share_vocab; set src to tgt.")
 
-  ## Vocab
-  # Get vocab file names first
-  if hparams.vocab_prefix:
-    src_vocab_file = hparams.vocab_prefix + "." + hparams.src
-    tgt_vocab_file = hparams.vocab_prefix + "." + hparams.tgt
-  else:
+  if not hparams.vocab_prefix:
     raise ValueError("hparams.vocab_prefix must be provided.")
 
+  src_vocab_file = f"{hparams.vocab_prefix}.{hparams.src}"
+  tgt_vocab_file = f"{hparams.vocab_prefix}.{hparams.tgt}"
   # Source vocab
   check_special_token = getattr(hparams, "check_special_token", True)
   src_vocab_size, src_vocab_file = vocab_utils.check_vocab(
@@ -519,41 +516,41 @@ def extend_hparams(hparams):
   _add_argument(hparams, "src_embed_file", "")
   _add_argument(hparams, "tgt_embed_file", "")
   if getattr(hparams, "embed_prefix", None):
-    src_embed_file = hparams.embed_prefix + "." + hparams.src
-    tgt_embed_file = hparams.embed_prefix + "." + hparams.tgt
+    src_embed_file = f"{hparams.embed_prefix}.{hparams.src}"
+    tgt_embed_file = f"{hparams.embed_prefix}.{hparams.tgt}"
 
     if tf.gfile.Exists(src_embed_file):
-      utils.print_out("  src_embed_file %s exist" % src_embed_file)
+      utils.print_out(f"  src_embed_file {src_embed_file} exist")
       hparams.src_embed_file = src_embed_file
 
       utils.print_out(
           "For pretrained embeddings, set num_enc_emb_partitions to 1")
       hparams.num_enc_emb_partitions = 1
     else:
-      utils.print_out("  src_embed_file %s doesn't exist" % src_embed_file)
+      utils.print_out(f"  src_embed_file {src_embed_file} doesn't exist")
 
     if tf.gfile.Exists(tgt_embed_file):
-      utils.print_out("  tgt_embed_file %s exist" % tgt_embed_file)
+      utils.print_out(f"  tgt_embed_file {tgt_embed_file} exist")
       hparams.tgt_embed_file = tgt_embed_file
 
       utils.print_out(
           "For pretrained embeddings, set num_dec_emb_partitions to 1")
       hparams.num_dec_emb_partitions = 1
     else:
-      utils.print_out("  tgt_embed_file %s doesn't exist" % tgt_embed_file)
+      utils.print_out(f"  tgt_embed_file {tgt_embed_file} doesn't exist")
 
   # Evaluation
   for metric in hparams.metrics:
-    best_metric_dir = os.path.join(hparams.out_dir, "best_" + metric)
+    best_metric_dir = os.path.join(hparams.out_dir, f"best_{metric}")
     tf.gfile.MakeDirs(best_metric_dir)
-    _add_argument(hparams, "best_" + metric, 0, update=False)
-    _add_argument(hparams, "best_" + metric + "_dir", best_metric_dir)
+    _add_argument(hparams, f"best_{metric}", 0, update=False)
+    _add_argument(hparams, f"best_{metric}_dir", best_metric_dir)
 
     if getattr(hparams, "avg_ckpts", None):
-      best_metric_dir = os.path.join(hparams.out_dir, "avg_best_" + metric)
+      best_metric_dir = os.path.join(hparams.out_dir, f"avg_best_{metric}")
       tf.gfile.MakeDirs(best_metric_dir)
-      _add_argument(hparams, "avg_best_" + metric, 0, update=False)
-      _add_argument(hparams, "avg_best_" + metric + "_dir", best_metric_dir)
+      _add_argument(hparams, f"avg_best_{metric}", 0, update=False)
+      _add_argument(hparams, f"avg_best_{metric}_dir", best_metric_dir)
 
   return hparams
 
@@ -587,9 +584,9 @@ def ensure_compatible_hparams(hparams, default_hparams, hparams_path=""):
 
   for key in overwritten_keys:
     if getattr(hparams, key) != default_config[key]:
-      utils.print_out("# Updating hparams.%s: %s -> %s" %
-                      (key, str(getattr(hparams, key)),
-                       str(default_config[key])))
+      utils.print_out(
+          f"# Updating hparams.{key}: {str(getattr(hparams, key))} -> {str(default_config[key])}"
+      )
       setattr(hparams, key, default_config[key])
   return hparams
 
@@ -610,7 +607,7 @@ def create_or_load_hparams(
   if save_hparams:
     utils.save_hparams(out_dir, hparams)
     for metric in hparams.metrics:
-      utils.save_hparams(getattr(hparams, "best_" + metric + "_dir"), hparams)
+      utils.save_hparams(getattr(hparams, f"best_{metric}_dir"), hparams)
 
   # Print HParams
   utils.print_hparams(hparams)
@@ -626,7 +623,7 @@ def run_main(flags, default_hparams, train_fn, inference_fn, target_session=""):
 
   # GPU device
   utils.print_out(
-      "# Devices visible to TensorFlow: %s" % repr(tf.Session().list_devices()))
+      f"# Devices visible to TensorFlow: {repr(tf.Session().list_devices())}")
 
   # Random
   random_seed = flags.random_seed
@@ -638,7 +635,7 @@ def run_main(flags, default_hparams, train_fn, inference_fn, target_session=""):
   # Model output directory
   out_dir = flags.out_dir
   if out_dir and not tf.gfile.Exists(out_dir):
-    utils.print_out("# Creating output directory %s ..." % out_dir)
+    utils.print_out(f"# Creating output directory {out_dir} ...")
     tf.gfile.MakeDirs(out_dir)
 
   # Load hparams.
